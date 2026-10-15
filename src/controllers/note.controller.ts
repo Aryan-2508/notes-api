@@ -1,5 +1,4 @@
 import type { Request, Response, NextFunction } from "express";
-import mongoose from "mongoose";
 import { noteService } from "../services/note.service";
 
 export async function getAllNotes(
@@ -8,8 +7,7 @@ export async function getAllNotes(
   next: NextFunction
 ) {
   try {
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.max(1, Number(req.query.limit) || 10);
+    const { page, limit } = res.locals.validated.query;
 
     const result = await noteService.getAllNotes(page, limit);
 
@@ -34,18 +32,7 @@ export async function getNoteById(
   next: NextFunction
 ) {
   try {
-    const id = req.params.id;
-
-    if (
-      typeof id !== "string" ||
-      !mongoose.isValidObjectId(id)
-    ) {
-      res.status(400).json({
-        success: false,
-        error: { message: "Invalid resource ID" },
-      });
-      return;
-    }
+    const { id } = res.locals.validated.params;
 
     const note = await noteService.getNoteById(id);
 
@@ -72,42 +59,10 @@ export async function createNote(
   next: NextFunction
 ) {
   try {
-    const { title, content } = req.body ?? {};
-
-    if (typeof title !== "string" || !title.trim()) {
-      res.status(400).json({
-        success: false,
-        error: {
-          message: "Validation failed",
-          details: [
-            {
-              field: "title",
-              message: "Title is required",
-            },
-          ],
-        },
-      });
-      return;
-    }
-
-    if (content !== undefined && typeof content !== "string") {
-      res.status(400).json({
-        success: false,
-        error: {
-          message: "Validation failed",
-          details: [
-            {
-              field: "content",
-              message: "Content must be a string",
-            },
-          ],
-        },
-      });
-      return;
-    }
+    const { title, content } = res.locals.validated.body;
 
     const note = await noteService.createNote({
-      title: title.trim(),
+      title,
       content,
     });
 
@@ -126,64 +81,8 @@ export async function updateNote(
   next: NextFunction
 ) {
   try {
-    const id = req.params.id;
-    const { title, content } = req.body ?? {};
-
-    if (
-      typeof id !== "string" ||
-      !mongoose.isValidObjectId(id)
-    ) {
-      res.status(400).json({
-        success: false,
-        error: { message: "Invalid resource ID" },
-      });
-      return;
-    }
-
-    if (title === undefined && content === undefined) {
-      res.status(400).json({
-        success: false,
-        error: {
-          message: "At least one field must be provided",
-        },
-      });
-      return;
-    }
-
-    if (
-      title !== undefined &&
-      (typeof title !== "string" || !title.trim())
-    ) {
-      res.status(400).json({
-        success: false,
-        error: {
-          message: "Validation failed",
-          details: [
-            {
-              field: "title",
-              message: "Title must be a non-empty string",
-            },
-          ],
-        },
-      });
-      return;
-    }
-
-    if (content !== undefined && typeof content !== "string") {
-      res.status(400).json({
-        success: false,
-        error: {
-          message: "Validation failed",
-          details: [
-            {
-              field: "content",
-              message: "Content must be a string",
-            },
-          ],
-        },
-      });
-      return;
-    }
+    const { id } = res.locals.validated.params;
+    const { title, content } = res.locals.validated.body;
 
     const updateData: {
       title?: string;
@@ -191,7 +90,7 @@ export async function updateNote(
     } = {};
 
     if (title !== undefined) {
-      updateData.title = title.trim();
+      updateData.title = title;
     }
 
     if (content !== undefined) {
@@ -223,18 +122,7 @@ export async function deleteNote(
   next: NextFunction
 ) {
   try {
-    const id = req.params.id;
-
-    if (
-      typeof id !== "string" ||
-      !mongoose.isValidObjectId(id)
-    ) {
-      res.status(400).json({
-        success: false,
-        error: { message: "Invalid resource ID" },
-      });
-      return;
-    }
+    const { id } = res.locals.validated.params;
 
     await noteService.deleteNote(id);
 
